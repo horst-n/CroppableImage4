@@ -1,0 +1,482 @@
+<?php namespace ProcessWire;
+
+
+class FieldtypeCroppableImage4 extends FieldtypeImage implements ConfigurableModule {
+
+    public static function getModuleInfo() {
+        return array(
+            'title'    => 'Croppable Image 4 (Fieldtype & Main-Module)',
+            'summary'  => 'One or more image uploads (optional predefined crops)',
+            'author'   => 'Horst Nogajski',
+            'version'  => '2.0.0',
+            'requires' => 'ProcessWire>=3.0.132, PHP>=7.0.0, CroppableImage4>=2.0.0',
+            'installs' => 'InputfieldCroppableImage4, ProcessCroppableImage4',
+            'icon'     => 'crop'
+        );
+    }
+
+    protected $textCollection = array();
+
+    protected function getText($key, $default = '(N/A)') {
+        if(!isset($this->textCollection['CroppableImage4TextCollectionVersion'])) {
+            require_once(dirname(__FILE__) . '/../lang/CroppableImage4TextCollection.php');
+            $c = new CroppableImage4TextCollection();
+            $this->textCollection = $c->combine($this->textCollection);
+        }
+        return isset($this->textCollection[$key]) ? $this->textCollection[$key] : $default;
+    }
+
+    public function __construct() {
+        parent::__construct();
+        $this->defaultInputfieldClass = 'InputfieldCroppableImage4'; // FieldtypeFile
+        require_once(dirname(__FILE__) . '/../classes/CroppableImage4KeepCoords.class.php');
+        require_once(dirname(__FILE__) . '/../classes/CroppableImage4Helpers.class.php');
+        require_once(dirname(__FILE__) . '/../classes/CroppableImage4CropSettings.class.php');
+        foreach(self::getDefaultData() as $key => $value) {
+            $this->$key = $value;
+        }
+    }
+
+    public function init() {
+        parent::init();
+
+        // add a new method to pageimage to retrieve a cropped variation as pageimage object
+        $this->addHook('Pageimage::getCrop4', $this, 'getCrop4');
+
+        // add a new method to pageimage to retrieve CropSettings for this image
+        $this->addHook('Pageimage::getCrop4Settings', $this, 'getCrop4Settings');
+
+        // adjust the getDebugInfo method of pageimage
+        //$this->addHookBefore('Pageimage::getDebugInfo', $this, 'getDebugInfo');
+        //$this->addHookAfter('Pageimage::getDebugInfo', $this, 'sendDebugInfo');
+
+        // validates CropSettings
+        // and tracks if previously used settings are removed, and if so, raises cleaning routines
+        $this->addHookBefore('InputField::processInput', $this, 'HookValidateSettingsInput');
+    }
+
+
+    public function getDebugInfo(HookEvent $event) {
+
+        // THIS IS NOT READY YET //
+                return;
+        // THIS IS NOT READY YET //
+
+        $inputFieldInstance = $event->object->field;
+        if('InputfieldCroppableImage4' != $inputFieldInstance->inputfieldClass && 'FieldtypeCroppableImage4' != $inputFieldInstance->inputfieldClass) {
+            return;
+        }
+
+        $this->debugInfo = null;
+
+        $returnType = $event->arguments(1);  // 'string'|'array'|'object'
+        $individualOptions = $event->arguments(0);
+        $debugHandler = new PageimageDebugInfo($event->object);
+        $debugInfo = $debugHandler->getVerboseDebugInfo($individualOptions, 'array');
+        $imageSizerOptions = $debugInfo['options_hierarchy']['imageSizerOptions'];
+        $croppableImageOptions = self::getCroppableImage4Options();
+        $croppableImageOptionsClean = $croppableImageOptions;
+        foreach(array('caiWebpAdd', 'caiWebpQuality', 'optionSharpening', 'optionQuality', 'useImageEngineDefaults', 'labelTextType', 'manualSelectionDisabled') as $key) {
+            unset($croppableImageOptionsClean[$key]);
+        }
+        $new = array(
+            array('imageSizerOptions' => $imageSizerOptions),
+            array('croppableImageOptions' => $croppableImageOptions),
+            array('individualOptions' => $individualOptions),
+            array('finalOptions' => array_merge($imageSizerOptions, $croppableImageOptionsClean, $individualOptions))
+        );
+
+        $debugInfo['options_hierarchy'] = $new;
+        $this->debugInfo = $debugInfo;
+    }
+
+    public function sendDebugInfo(HookEvent $event) {
+
+        // THIS IS NOT READY YET //
+                return;
+        // THIS IS NOT READY YET //
+
+        $inputFieldInstance = $event->object->field;
+        if('InputfieldCroppableImage4' != $inputFieldInstance->inputfieldClass && 'FieldtypeCroppableImage4' != $inputFieldInstance->inputfieldClass) {
+            return;
+        }
+        if(!is_array($this->debugInfo)) return;
+
+        $returnType = $event->arguments(1);  // 'string'|'array'|'object'
+        // now prepare the output from array into $returnType  !!!
+        if('array' == $returnType) {
+            $out = $this->debugInfo;
+        } else if('object' == $returnType) {
+
+        } else {  // string
+
+        }
+        $event->return = $out;
+    }
+
+
+    /**
+     * getCrop4Settings
+     *
+     * CroppableImage Needs a way to get crop images sizes from the
+     * ProcessWire API. The largest usecase for this is when
+     * JSON encoding $page data, along with CroppableImage images variations.
+     *
+     * Example of how to use in JSON pages Module:
+     *
+     * ...
+     *  if ($field->type instanceOf FieldtypeCroppableImage ){
+     *       $cropSettings = $image->getCrop4Settings();
+     *       foreach($cropSettings as $setting){
+     *           $cropImage = $image->getCrop4($setting->name);
+     *           $ret[$field->name][$i]['crops'][$setting->name]['width'] = $setting->width;
+     *           $ret[$field->name][$i]['crops'][$setting->name]['height'] = $setting->height;
+     *           $ret[$field->name][$i]['crops'][$setting->name]['url'] = $cropImage->url;
+     *       }
+     *  }
+     *  ...
+     *
+     * @param HookEvent $event
+     * @return bool
+     */
+    public function getCrop4Settings(HookEvent $event) {
+        $inputFieldInstance = $event->object->field;
+        $cropSettings = new CroppableImage4CropSettings($inputFieldInstance->cropSetting);
+        $sets = $cropSettings->getCropSettingsForTemplate($event->object->page->template);
+        $event->return = $sets;
+        return true;
+    }
+
+
+
+    // this does not only validate settings, it also raises cleaning routines
+    // if a user has changed or deleted previously used settings
+    public function HookValidateSettingsInput(HookEvent $event) {
+
+        $input = $event->object;
+        if('cropSetting' !== $input->name) return;
+
+        $args = $event->arguments(0);
+        if(!$args || $args->type !== 'FieldtypeCroppableImage4') return;
+
+        // get the old settings
+        $oldSettings = new CroppableImage4CropSettings($this->fields->get($args->id)->cropSetting);
+
+        // get the new settings
+        $cropSettings = new CroppableImage4CropSettings($args->cropSetting);
+
+        // compare to detect changes
+        $changes = ($oldSettings != $cropSettings) ? true : false;
+
+        // check if any of the lines are invalid
+        $valid = true;
+        if(count($cropSettings->invalidLines) > 0) {
+            $valid = false;
+            foreach($cropSettings->invalidLines as $invalidLine) {
+                $this->error(sprintf($this->getText('cropSettings_invalidLine'), $invalidLine));
+            }
+        }
+
+        // check if given templates exist, throw a warning if any of them don't
+        $invalidTemplates = array();
+        foreach($cropSettings->templateNames as $templateName) {
+            $template = $this->templates->get($templateName);
+            if(!$template) {
+                $invalidTemplates[] = $templateName;
+            }
+        }
+        if(count($invalidTemplates) > 0) {
+            $this->warning(sprintf(
+                $this->getText('cropSettings_invalidTemplates'),
+                implode("', '", $invalidTemplates)
+            ));
+        }
+
+        // check for duplicates
+        foreach($cropSettings->duplicates as $name => $duplicate) {
+            $valid = false;
+            $this->error(sprintf($this->getText('cropSettings_mustbeunique'), $name, $duplicate));
+        }
+
+        // if a user has made invalid changes, we drop new settings and 'restore' the previously used
+        if($changes && !$valid) {
+            // we cannot cleanup variations according to invalid settings!
+            // Restore the previous one and return;
+            $event->return = $this->fields->get($args->id)->cropSetting;
+            $event->replace = true;
+            $this->error($this->getText('cropSettings_RestoreMsg'));
+            return;
+        }
+
+        // if there are changes and the new settings are valid, we inspect which changes should be made and act upon it
+        if($valid && $changes) {
+            $removed = $changed = array();
+            foreach($oldSettings->items as $k => $v) {
+                // removed ?
+                if(!isset($cropSettings->items[$k])) {
+                    $removed[$k] = $v;
+                    continue;
+                }
+                // changed ?
+                if($cropSettings->items[$k] != $oldSettings->items[$k]) {
+                    $changed[$k] = array('from' => $v, 'to' => $cropSettings->items[$k]);
+                    continue;
+                }
+            }
+            // here we will remove all variations that belongs to $removed cropname and check which we have to delete from $changed
+            $this->cleaningRoutine($this->fields->get($args->id), $this->fields->get($args->id)->cropSetting, $args->cropSetting, $removed, $changed);
+        }
+
+        return;
+    }
+
+
+
+    // until now, (02.11.2014), getCrop4() isn't affected by option "forceNew" in regard of the suffix-crop
+
+    // REWRITE WITHOUT INTERMEDIATE IMAGE, BUT WITH INDIVIDUAL OPTIONS
+    public function getCrop4(HookEvent $event) {
+
+        // return if no Inputfield is found
+        $inputFieldInstance = $event->object->field;
+        if(!$inputFieldInstance) return;
+
+        // get mandatory suffixname (cropname)
+        $suffix = $this->sanitizer->name($event->arguments(0));
+
+        // get the template name
+        $templateName = $event->object->page->template->name;
+        $cropSettings = new CroppableImage4CropSettings($inputFieldInstance->cropSetting);
+
+        // check if the cropname is valid for this template
+        if($cropSetting = $cropSettings->getCropSetting($suffix, $templateName)) {
+            // TODO 4 -c errorhandling :we need to check for: is-to-small
+            $this->w = $cropSetting->width;
+            $this->h = $cropSetting->height;
+        } else {
+            throw new WireException(sprintf(
+                $this->getText('cropSettings_NoSetting4Template'),
+                $templateName,
+                $suffix
+            ));
+            return;
+        }
+
+        // check if we have a setting for width or height
+        if($this->w < 1 && $this->h < 1) {
+            throw new WireException(sprintf($this->getText('cropSettings_widthHeightNotFound'), $suffix));
+            return;
+        }
+
+
+        // get the source image object
+        $img = $event->object;
+
+
+        // get global caiOptions
+        $x1 = $y1 = $w = $h = 0;
+        $caiOptions = self::getCroppableImage4Options();
+
+        // get stored options from session or IPTC
+        $caiKeepCoords = new CroppableImage4KeepCoords();
+        if($caiKeepCoords->readSuffix($img, $suffix, $x1, $y1, $w, $h, $quality, $sharpening)) {
+            // we got values from session or IPTC, now add them to the options after successful validation
+            $caiOptions['quality'] = is_integer($quality) && 0 < $quality && 101 > $quality ? $quality : $caiOptions['quality'];
+            $caiOptions['sharpening'] = ImageSizer::sharpeningValueStr($sharpening) == $sharpening ? $sharpening : $caiOptions['sharpening'];
+        }
+        unset($caiKeepCoords);
+
+        // get optional individual options
+        $individualOptions = $event->arguments(1);
+        if(is_string($individualOptions) && 0 < strlen(trim($individualOptions))) {
+            // we have a selector string, so push it through the typecaster
+            $individualOptions = CroppableImage4Helpers::typeCaster(
+                array(
+                    'int' => array('width', 'height', 'quality'),
+                    //'float' => array('defaultGamma'),
+                    'bool' => array('upscaling', 'cropping', 'forceNew', 'useUSM', 'useGD', 'autoRotation', 'keepICC', 'keepXMP', 'keepEXIF', 'webpAdd', 'webOnly'),
+                    'str' => array('sharpening', 'suffix')
+                    ),
+                CroppableImage4Helpers::selector2array($this->sanitizer->text(trim($individualOptions))));
+        } else if(is_array($individualOptions)) {
+            // we have an options array already
+
+        } else {
+            // make it an empty array
+            $individualOptions = array();
+        }
+
+        // merge to final options array
+        $imOptions = array_merge($caiOptions, $individualOptions);
+        $finalOptions = CroppableImage4Helpers::mergeFinalOptions($suffix, $imOptions, $x1, $y1, $w, $h);
+
+        // pass all to pageimage
+        $pageimage = $img->size($this->w, $this->h, $finalOptions);
+
+        // and finally we return the new pageimage
+        $event->return = $pageimage;
+
+        return true;
+    }
+
+
+
+    // remove useless variations after a CropSetting has changed
+    private function cleaningRoutine($field, $old, $new, $removed, $changed) {
+        #$collection = array();
+
+        $cikc = new CroppableImage4KeepCoords();
+        $cics = new CroppableImage4CropSettings($old);
+
+        $TABLE = 'field_' . mb_strtolower($field->name);// TODO: lowercase name ?
+        $r = wire('db')->query("SELECT pages_id,count(pages_id) FROM $TABLE GROUP BY pages_id ORDER BY pages_id");
+        // TODO: use database (pdo) instead of db (mysqli)
+
+        while($row = $r->fetch_row()) {
+            set_time_limit(30);                                                     // reset time limit
+            $page = $this->pages->get('id=' . $row[0]);                             // get a page
+            if(0 == $page->id) continue;                                            // check page is valid
+
+                foreach($removed as $suffix => $v) {                                        // check a removed one
+                    $cropsetting = $cics->getCropSetting($suffix);                          // get a removed cropsetting
+                    if(!$cropsetting->isTemplateAllowed($page->template->name)) continue;   // continue if the page template does not match
+                    foreach($page->get($field->name) as $image) {// TODO: lowercase name ?  // get a pageimage
+                        $cikc->dropSuffix($image, $suffix);                                 // remove these settings from permanent storage
+                        foreach($image->getVariations() as $i) {                            // get variations of that pageimage
+                            if(null == $this->hasSuffix($i, $suffix)) continue;             // check if a variationname has the current suffix
+                            #$collection[$i->filename] = $i->filename;                      // if yes, collect it / unlink it, incl. optionally webpCopy
+                            $this->removeWebpCopy($i->filename);
+                            @unlink($i->filename);
+                        }
+                    }
+                }
+                foreach($changed as $suffix => $a) {                                        // check a changed one
+                    $cso = $a['from'];                                                      // cropsettings old
+                    $csn = $a['to'];                                                        // cropsettings new
+                    if(($cso->isTemplateAllowed($page->template->name) &&                   //
+                        !$csn->isTemplateAllowed($page->template->name)) ||                 // continue if the actually page-template isn't allowed anymore
+                        ($cso->width != $csn->width) ||                                     // or continue if the new width doesn't match the old width
+                        ($cso->height != $csn->height) ) {                                  // or continue if the new height doesn't match the old height
+                        foreach($page->get(mb_strtolower($field->name)) as $image) {        // get a pageimage               // TODO: name to lowercase ???
+                            $cikc->dropSuffix($image, $suffix);                             // remove these settings from permanent storage
+                            foreach($image->getVariations() as $i) {                        // get variations of the pageimage
+                                if(!$this->hasSuffix($i, $suffix)) continue;                // check if a variationname has the current suffix
+                                #$collection[$i->filename] = $i->filename;                  // if yes, collect it / unlink it, incl. optionally webpCopy
+                                $this->removeWebpCopy($i->filename);
+                                @unlink($i->filename);
+                            }
+                        }
+                    }
+                }
+
+            #$this->pages->uncacheAll();
+            $this->pages->uncache($page);                                                   // uncache used page
+        }
+
+        return;
+    }
+
+    private function hasSuffix($image, $suffix) {
+        $info = $image->isVariation($image->basename, true);
+        $res = $info ? in_array($suffix, $info['suffixAll']) : false;
+        return $res;
+    }
+
+    private function removeWebpCopy($filename) {
+        $path_parts = pathinfo($filename);
+        $webpCopy = $path_parts['dirname'] .'/'. $path_parts['filename'] . '.webp';
+        if(file_exists($webpCopy)) @unlink($webpCopy);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    static protected $sharpeningValues = array('none', 'soft', 'medium', 'strong');
+
+    // bool, if current user is allowed to use dropdown selects for quality and sharpening
+    protected $manualSelectionAllowed;
+    protected $useImageEngineDefaults;
+    protected $labelTextType;
+    protected $globalOptions;
+
+    static public function getDefaultData() {
+        return array(
+            'crops' => ''
+        );
+    }
+
+
+    static public function getCroppableImage4Options() {
+        $defaultOptions = array(
+            'autoRotation' => true,
+            'upscaling' => true,
+            'cropping' => true,
+            'quality' => 90,
+            'sharpening' => 'soft',
+            'defaultGamma' => 2.2,
+            'webpAdd' => false,
+            'webpQuality' => 90
+        );
+
+        $imageSizerOptions = wire('config')->imageSizerOptions;
+        if(!is_array($imageSizerOptions)) $imageSizerOptions = array();
+
+        $sessionOptions = wire('session')->CroppableImage4Options;
+        if(!is_array($sessionOptions)) $sessionOptions = array();
+
+        $globalOptions = CroppableImage4Helpers::getGlobalConfigSettings(true);
+        if(is_array($globalOptions)) {
+            if(!$globalOptions['useImageEngineDefaults']) {
+                // quality
+                if(isset($globalOptions['optionQuality'])) {
+                    $globalOptions['quality'] = $globalOptions['optionQuality'];
+                }
+                // sharpening
+                if(isset($globalOptions['optionSharpening'])) {
+                    $globalOptions['sharpening'] = self::$sharpeningValues[$globalOptions['optionSharpening']];
+                }
+            } else {
+                // hier fehlen die Werte der selected engine !!
+
+            }
+            // webp
+            if(isset($globalOptions['caiWebpAdd'])) {
+                $globalOptions['webpAdd'] = (bool) $globalOptions['caiWebpAdd'];
+            }
+            if(isset($globalOptions['caiWebpQuality'])) {
+                $globalOptions['webpQuality'] = $globalOptions['caiWebpQuality'];
+            }
+        } else {
+            $globalOptions = array();
+        }
+
+        $res = array_merge($defaultOptions, $imageSizerOptions, $sessionOptions, $globalOptions);
+        unset($res['submit_save_module']);
+        unset($res['uninstall']);
+        return $res;
+    }
+
+
+    static public function getModuleConfigInputfields(array $data) {
+        $data = array_merge(self::getDefaultData(), $data);
+        require_once(dirname(__FILE__) . '/FieldtypeCroppableImage4ConfAdaptor.php');
+        $c = new FieldtypeCroppableImage4ConfAdaptor();
+        return $c->getConfig($data);
+    }
+
+}
