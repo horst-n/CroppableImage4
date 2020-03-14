@@ -379,7 +379,7 @@ class ProcessCroppableImage4 extends Process implements Module {
         $p = new Page();
         $p->template = $this->templates->get('admin');
         $p->parent = $this->pages->get(3);  // /admin/pages
-        $p->title = 'Croppable Images 3';
+        $p->title = 'Croppable Images 4';
         $p->name = self::adminPageName;
         $p->process = $this;
         $p->addStatus(Page::statusHidden);  // should not show up as link to blank page in the Admin Pages-Menu
