@@ -20,6 +20,7 @@ class ProcessCroppableImage4 extends Process implements Module {
      * Name used for the page created in the admin
      */
     const adminPageName = 'croppable-image-4';
+    const adminPageTitle = 'Croppable Images 4';
     const adminPagePermission = self::adminPageName;
 
     static protected $sharpeningValues = array('none', 'soft', 'medium', 'strong');
@@ -375,11 +376,11 @@ class ProcessCroppableImage4 extends Process implements Module {
             $p = $this->pages->get(3)->children('include=hidden')->get('name=' . self::adminPageName);
             if($p->id) $p->delete();
 
-        // create a new process page for croppable images 3
+        // create a new process page for croppable images 4
         $p = new Page();
         $p->template = $this->templates->get('admin');
         $p->parent = $this->pages->get(3);  // /admin/pages
-        $p->title = 'Croppable Images 4';
+        $p->title = self::adminPageTitle;
         $p->name = self::adminPageName;
         $p->process = $this;
         $p->addStatus(Page::statusHidden);  // should not show up as link to blank page in the Admin Pages-Menu
