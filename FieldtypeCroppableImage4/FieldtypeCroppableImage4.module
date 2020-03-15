@@ -291,19 +291,19 @@ class FieldtypeCroppableImage4 extends FieldtypeImage implements ConfigurableMod
         if(is_string($individualOptions) && 0 < strlen(trim($individualOptions))) {
             // we have a selector string, so push it through the typecaster
             $individualOptions = CroppableImage4Helpers::typeCaster(
-                array(
-                    'int' => array('width', 'height', 'quality'),
-                    //'float' => array('defaultGamma'),
-                    'bool' => array('upscaling', 'cropping', 'forceNew', 'useUSM', 'useGD', 'autoRotation', 'keepICC', 'keepXMP', 'keepEXIF', 'webpAdd', 'webOnly'),
-                    'str' => array('sharpening', 'suffix')
-                    ),
+                [
+                    'int'   => ['width', 'height', 'quality'],
+                    //'float' => ['defaultGamma'],
+                    'bool'  => ['upscaling', 'cropping', 'forceNew', 'useUSM', 'useGD', 'autoRotation', 'keepICC', 'keepXMP', 'keepEXIF', 'webpAdd', 'webOnly'],
+                    'str'   => ['sharpening', 'suffix']
+                ],
                 CroppableImage4Helpers::selector2array($this->sanitizer->text(trim($individualOptions))));
         } else if(is_array($individualOptions)) {
             // we have an options array already
 
         } else {
             // make it an empty array
-            $individualOptions = array();
+            $individualOptions = [];
         }
 
         // merge to final options array
@@ -312,6 +312,12 @@ class FieldtypeCroppableImage4 extends FieldtypeImage implements ConfigurableMod
 
         // pass all to pageimage
         $pageimage = $img->size($this->w, $this->h, $finalOptions);
+
+        // if a (old) WebP variation is on disk, we remove it
+        if(!$finalOptions['webpAdd']) {
+            // there should be no WebP file available now
+            $this->removeWebpCopy($pageimage->filename);
+        }
 
         // and finally we return the new pageimage
         $event->return = $pageimage;
@@ -329,7 +335,7 @@ class FieldtypeCroppableImage4 extends FieldtypeImage implements ConfigurableMod
         $cics = new CroppableImage4CropSettings($old);
 
         $TABLE = 'field_' . mb_strtolower($field->name);// TODO: lowercase name ?
-        $r = wire('db')->query("SELECT pages_id,count(pages_id) FROM $TABLE GROUP BY pages_id ORDER BY pages_id");
+        $r = $this->wire('db')->query("SELECT pages_id,count(pages_id) FROM $TABLE GROUP BY pages_id ORDER BY pages_id");
         // TODO: use database (pdo) instead of db (mysqli)
 
         while($row = $r->fetch_row()) {
@@ -384,7 +390,8 @@ class FieldtypeCroppableImage4 extends FieldtypeImage implements ConfigurableMod
 
     private function removeWebpCopy($filename) {
         $path_parts = pathinfo($filename);
-        $webpCopy = $path_parts['dirname'] .'/'. $path_parts['filename'] . '.webp';
+        $part = $this->wire('config')->webpOptions['useSrcExt'] ? '.'.$path_parts['extension'] : '';
+        $webpCopy = $path_parts['dirname'] .'/'. $path_parts['filename'] .$part. '.webp';
         if(file_exists($webpCopy)) @unlink($webpCopy);
     }
 
@@ -421,7 +428,7 @@ class FieldtypeCroppableImage4 extends FieldtypeImage implements ConfigurableMod
     }
 
 
-    static public function getCroppableImage4Options() {
+    static public function getCroppableImage4Options($optionalIndividualOptions = []) {
         $defaultOptions = array(
             'autoRotation' => true,
             'upscaling' => true,
@@ -465,7 +472,9 @@ class FieldtypeCroppableImage4 extends FieldtypeImage implements ConfigurableMod
             $globalOptions = array();
         }
 
-        $res = array_merge($defaultOptions, $imageSizerOptions, $sessionOptions, $globalOptions);
+        $optionalIndividualOptions = is_array($optionalIndividualOptions) ? $optionalIndividualOptions : [];
+
+        $res = array_merge($defaultOptions, $imageSizerOptions, $sessionOptions, $globalOptions, $optionalIndividualOptions);
         unset($res['submit_save_module']);
         unset($res['uninstall']);
         return $res;
