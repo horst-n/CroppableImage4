@@ -313,7 +313,7 @@ class FieldtypeCroppableImage4 extends FieldtypeImage implements ConfigurableMod
 
         // do an additionally check if we have to recreate the crop variation,
         // this may happen, if a sourcefile updated was unrecognized for some reason
-        if(!isset($finalOptions['forceNew']) || !$finalOptions['forceNew'] && (filemtime($img->filename) > filemtime($pageimage->filename))) {
+        if(filemtime($img->filename) > filemtime($pageimage->filename)) {
             $pageimage = $img->size($this->w, $this->h, array_merge($finalOptions, ['forceNew' => true]));
         }
 
