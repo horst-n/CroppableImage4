@@ -44,9 +44,10 @@ class InputfieldCroppableImage4 extends InputfieldImage {
 
     // don't let out the parent modules assets and wrapper !!
     public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
+        parent::renderReady($parent, $renderValueMode);
         $this->wire('modules')->loadModuleFileAssets('InputfieldImage');
         $this->addClass('InputfieldImage', 'wrapClass');
-        return parent::renderReady($parent, $renderValueMode);
+        return true;
     }
 
 //    public function ___render() {
