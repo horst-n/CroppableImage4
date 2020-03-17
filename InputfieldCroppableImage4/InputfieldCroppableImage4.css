@@ -65,6 +65,10 @@ li.Inputfield.InputfieldImage.InputfieldCroppableImage4 .gridImage.gridImage--de
     background: #E83561;
 }
 
+li.Inputfield.InputfieldImage.InputfieldCroppableImage4.InputfieldImageEditAll .gridImage__overflow>.focusArea {
+    top: 0 !important;
+    left: 0 !important;
+}
 /*****************************************************************************************/
 
 /*****************************************************************************************/
@@ -269,9 +273,3 @@ li.Inputfield.InputfieldImage.InputfieldCroppableImage4 .InputfieldImageEdit__im
 
 /*****************************************************************************************/
 
-/*****************************************************************************************/
-/** remove Crop-Button from core image field to avoid confusion for clients **/
-
-/* button.InputfieldImageButtonCrop { display: none; } */
-
-/*****************************************************************************************/
