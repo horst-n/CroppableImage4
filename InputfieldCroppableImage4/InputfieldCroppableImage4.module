@@ -35,6 +35,7 @@ class InputfieldCroppableImage4 extends InputfieldImage {
         parent::init();
         // default settings
         $this->set('cropSetting', '');
+        $this->set('hideCoreFeatures', "-All\nCrop\nFocus\nActions");
         // we definetly need this to be displayed, as it contains the cropLinks !!
         $this->set('useImageEditor', 1);
         $this->labels = array_merge($this->labels, array(
@@ -55,12 +56,42 @@ class InputfieldCroppableImage4 extends InputfieldImage {
 //        return $out;
 //    }
 
+    protected function hideCoreImageFeatures() {
+        $a = explode("\n", trim($this->get('hideCoreFeatures')));
+        $All = $Crop = $Focus = $Actions = false;
+        foreach($a as $line) {
+            if('all' == substr(mb_strtolower(trim($line)), 0, 3)) {
+                $All = true;
+                break;
+            } elseif('crop' == substr(mb_strtolower(trim($line)), 0, 4)) {
+                $Crop = true;
+            } elseif('focus' == substr(mb_strtolower(trim($line)), 0, 5)) {
+                $Focus = true;
+            } elseif('action' == substr(mb_strtolower(trim($line)), 0, 6)) {
+                $Actions = true;
+            }
+        }
+        $thisFieldname = '.Inputfield_' . $this->hasField->name;
+        $style = "\n<style>\n";
+            if($All) $style .= "{$thisFieldname} .InputfieldImageEdit__buttons button, {$thisFieldname} .InputfieldFileActionSelect { display: none !important; }\n";
+            if(!$All && $Crop) $style .= "{$thisFieldname} .InputfieldImageEdit__buttons .InputfieldImageButtonCrop  { display: none !important; }\n";
+            if(!$All && $Focus) $style .= "{$thisFieldname} .InputfieldImageEdit__buttons .InputfieldImageButtonFocus  { display: none !important; }\n";
+            if(!$All && $Actions) $style .= "{$thisFieldname} .InputfieldFileActionSelect { display: none !important; }\n";
+            $style .= "{$thisFieldname} .InputfieldImageEdit__info { display: none !important; }\n";
+            $style .= "{$thisFieldname} .InputfieldImageEdit__name span { cursor: default; }\n";
+            $style .= "{$thisFieldname} .InputfieldImageEdit__imagewrapper .detail-upload { visibility: hidden !important; }\n";
+        $style .= "</style>\n";
+        return $style;
+    }
+
+
     protected function ___renderButtons($pagefile, $id, $n) {
         $out = parent::___renderButtons($pagefile, $id, $n);
         $cropLinks = $this->getCropLinks($pagefile);
         if($cropLinks) {
-            $out = "<div class='croppableImageButtons'><p>" . $this->getText('predefinedCrops') . "</p>" .
-                    $cropLinks . "</div>" . $out;
+            $out = $this->hideCoreImageFeatures() .
+                   "<div class='croppableImageButtons'><p>" . $this->getText('predefinedCrops') . "</p>" .
+                   $cropLinks . "</div>" . $out;
         }
         return $out;
     }
@@ -94,10 +125,6 @@ class InputfieldCroppableImage4 extends InputfieldImage {
 //        $h = $pagefile->height;
 //        $adminThumb['attr']['data-grid-x'] = ceil(140 / $w * $h);
 //        $adminThumb['attr']['data-grid-y'] = ceil(140 / $h * $w);
-
-//my_var_dump($w,1);
-//my_var_dump($h,1);
-//my_var_dump($adminThumb,1);die();
 
         foreach($cropSettings->items as $cropSetting) {
 
@@ -180,12 +207,6 @@ class InputfieldCroppableImage4 extends InputfieldImage {
         return $out ? "<div class='cropLinks'>{$out}</div>" : false;
     }
 
-                    #protected function renderItemWrap($out) {
-                    #    $item = $this->currentItem;
-                    #    $id = $item && !$this->renderValueMode ? " id='file_$item->hash'" : "";
-                    #    return "<li$id class='ImageOuter {$this->itemClass}'>$out</li>";
-                    #}
-
 
 	        protected function ___buildTooltipData($pagefile) {
 
@@ -230,10 +251,18 @@ class InputfieldCroppableImage4 extends InputfieldImage {
         $inputfields = parent::___getConfigInputfields();
 
         $field = $this->modules->get("InputfieldTextarea");
-        $field->attr('name', 'cropSetting');
-        $field->attr('value', (string) $this->cropSetting );
+        $field->attr('name+id', 'cropSetting');
+        $field->attr('value', (string)$this->get('cropSetting'));
         $field->label = $this->getText('fieldCropSetting_Label');
         $field->description = $this->getText('fieldCropSetting_Description');
+        $inputfields->add($field);
+
+        $field = $this->modules->get("InputfieldTextarea");
+        $field->attr('name+id', 'hideCoreFeatures');
+        $field->attr('value', (string)$this->get('hideCoreFeatures'));
+        $field->label = $this->getText('fieldHideCoreFeatures_Label');
+        $field->description = trim($this->getText('fieldHideCoreFeatures_Description')) . "\n -All (" . trim($this->getText('fieldHideCoreFeatures_DescriptionPart2')) . ")\nCrop\nFocus\nActions";
+        $field->collapsed = Inputfield::collapsedYes;
         $inputfields->add($field);
 
         return $inputfields;

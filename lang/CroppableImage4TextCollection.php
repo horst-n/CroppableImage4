@@ -61,6 +61,9 @@ class CroppableImage4TextCollection extends WireData {
             'jsCropInfo_emptyFields' => $this->_('Some input fields are empty'),
             'fieldCropSetting_Label' => $this->_('Crop Settings'),
             'fieldCropSetting_Description' => $this->_('Enter all crop dimensions, one on each line in this format: name,width,height. Few examples: "landscape,900,600" or "portrait,200,600". Optionally, you can bind a cropsetting to only explicitly named templates by giving the templatename(s) as last parameter(s). Examples: "panorama,1200,600,home" or "square,300,300,basic-page,home"'),
+            'fieldHideCoreFeatures_Label' => $this->_('Hide core imagefield features'),
+            'fieldHideCoreFeatures_Description' => $this->_('Hide the following buttons by removing the hyphen in front of its name:'),
+            'fieldHideCoreFeatures_DescriptionPart2' => $this->_('including Variations'),
 
          // ProcessCroppableImage4
             'confirmCropText' => $subCollection[$labelTextType]['confirmCropText'],
