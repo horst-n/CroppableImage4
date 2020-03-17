@@ -153,86 +153,88 @@ class FieldtypeCroppableImage4 extends FieldtypeImage implements ConfigurableMod
     // if a user has changed or deleted previously used settings
     public function HookValidateSettingsInput(HookEvent $event) {
 
-        $input = $event->object;
-        if('cropSetting' !== $input->name) return;
-
         $args = $event->arguments(0);
         if(!$args || $args->type !== 'FieldtypeCroppableImage4') return;
+        $input = $event->object;
 
-        // get the old settings
-        $oldSettings = new CroppableImage4CropSettings($this->fields->get($args->id)->cropSetting);
 
-        // get the new settings
-        $cropSettings = new CroppableImage4CropSettings($args->cropSetting);
+        if('cropSetting' === $input->name) {
 
-        // compare to detect changes
-        $changes = ($oldSettings != $cropSettings) ? true : false;
+            // get the old settings
+            $oldSettings = new CroppableImage4CropSettings($this->fields->get($args->id)->cropSetting);
 
-        // check if any of the lines are invalid
-        $valid = true;
-        if(count($cropSettings->invalidLines) > 0) {
-            $valid = false;
-            foreach($cropSettings->invalidLines as $invalidLine) {
-                $this->error(sprintf($this->getText('cropSettings_invalidLine'), $invalidLine));
+            // get the new settings
+            $cropSettings = new CroppableImage4CropSettings($args->cropSetting);
+
+            // compare to detect changes
+            $changes = ($oldSettings != $cropSettings) ? true : false;
+
+            // check if any of the lines are invalid
+            $valid = true;
+            if(count($cropSettings->invalidLines) > 0) {
+                $valid = false;
+                foreach($cropSettings->invalidLines as $invalidLine) {
+                    $this->error(sprintf($this->getText('cropSettings_invalidLine'), $invalidLine));
+                }
             }
-        }
 
-        // check if given templates exist, throw a warning if any of them don't
-        $invalidTemplates = array();
-        foreach($cropSettings->templateNames as $templateName) {
-            $template = $this->templates->get($templateName);
-            if(!$template) {
-                $invalidTemplates[] = $templateName;
+            // check if given templates exist, throw a warning if any of them don't
+            $invalidTemplates = array();
+            foreach($cropSettings->templateNames as $templateName) {
+                $template = $this->templates->get($templateName);
+                if(!$template) {
+                    $invalidTemplates[] = $templateName;
+                }
             }
-        }
-        if(count($invalidTemplates) > 0) {
-            $this->warning(sprintf(
-                $this->getText('cropSettings_invalidTemplates'),
-                implode("', '", $invalidTemplates)
-            ));
-        }
+            if(count($invalidTemplates) > 0) {
+                $this->warning(sprintf(
+                    $this->getText('cropSettings_invalidTemplates'),
+                    implode("', '", $invalidTemplates)
+                ));
+            }
 
-        // check for duplicates
-        foreach($cropSettings->duplicates as $name => $duplicate) {
-            $valid = false;
-            $this->error(sprintf($this->getText('cropSettings_mustbeunique'), $name, $duplicate));
-        }
+            // check for duplicates
+            foreach($cropSettings->duplicates as $name => $duplicate) {
+                $valid = false;
+                $this->error(sprintf($this->getText('cropSettings_mustbeunique'), $name, $duplicate));
+            }
 
-        // if a user has made invalid changes, we drop new settings and 'restore' the previously used
-        if($changes && !$valid) {
-            // we cannot cleanup variations according to invalid settings!
-            // Restore the previous one and return;
-            $event->return = $this->fields->get($args->id)->cropSetting;
-            $event->replace = true;
-            $this->error($this->getText('cropSettings_RestoreMsg'));
+            // if a user has made invalid changes, we drop new settings and 'restore' the previously used
+            if($changes && !$valid) {
+                // we cannot cleanup variations according to invalid settings!
+                // Restore the previous one and return;
+                $event->return = $this->fields->get($args->id)->cropSetting;
+                $event->replace = true;
+                $this->error($this->getText('cropSettings_RestoreMsg'));
+                return;
+            }
+
+            // if there are changes and the new settings are valid, we inspect which changes should be made and act upon it
+            if($valid && $changes) {
+                $removed = $changed = array();
+                foreach($oldSettings->items as $k => $v) {
+                    // removed ?
+                    if(!isset($cropSettings->items[$k])) {
+                        $removed[$k] = $v;
+                        continue;
+                    }
+                    // changed ?
+                    if($cropSettings->items[$k] != $oldSettings->items[$k]) {
+                        $changed[$k] = array('from' => $v, 'to' => $cropSettings->items[$k]);
+                        continue;
+                    }
+                }
+                // here we will remove all variations that belongs to $removed cropname and check which we have to delete from $changed
+                $this->cleaningRoutine($this->fields->get($args->id), $this->fields->get($args->id)->cropSetting, $args->cropSetting, $removed, $changed);
+            }
+
             return;
         }
-
-        // if there are changes and the new settings are valid, we inspect which changes should be made and act upon it
-        if($valid && $changes) {
-            $removed = $changed = array();
-            foreach($oldSettings->items as $k => $v) {
-                // removed ?
-                if(!isset($cropSettings->items[$k])) {
-                    $removed[$k] = $v;
-                    continue;
-                }
-                // changed ?
-                if($cropSettings->items[$k] != $oldSettings->items[$k]) {
-                    $changed[$k] = array('from' => $v, 'to' => $cropSettings->items[$k]);
-                    continue;
-                }
-            }
-            // here we will remove all variations that belongs to $removed cropname and check which we have to delete from $changed
-            $this->cleaningRoutine($this->fields->get($args->id), $this->fields->get($args->id)->cropSetting, $args->cropSetting, $removed, $changed);
-        }
-
-        return;
     }
 
 
 
-    // REWRITE WITHOUT INTERMEDIATE IMAGE, BUT WITH INDIVIDUAL OPTIONS
+    // REWRITE WITHOUT INTERMEDIATE IMAGE, BUT WITH INDIVIDUAL OPTIONS !!
     public function getCrop4(HookEvent $event) {
 
         // return if no Inputfield is found
