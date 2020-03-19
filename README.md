@@ -1,8 +1,8 @@
-﻿# Croppable Image 4  (! ALPHA !)
+﻿# Croppable Image 4
 
 ## Module for ProcessWire >= 3.0.132
 
-## Version 2.0.0-RC01 (alpha)
+## Version 2.0.0-RC01 (beta)
 
 
 ### How to install
@@ -44,27 +44,27 @@ squarethumb,250,250,home,sidebar
 
 ### Usage in templates
 
-``FieldtypeCroppableImage4`` adds a ``getCrop4``-method to ``Pageimage``. ``getCrop4`` returns the ``Pageimage`` instance of the crop you have asked for, ie:
+``FieldtypeCroppableImage4`` adds a ``getCrop``-method to ``Pageimage``. ``getCrop`` returns the ``Pageimage`` instance of the crop you have asked for, ie:
 
 ```php
 // get the first image instance of crop setting 'portrait'
-$image = $page->images->first()->getCrop4('portrait');
+$image = $page->images->first()->getCrop('portrait');
 ```
 
 You can further use every pageimage property like 'url', 'description', 'width' & 'height' with it:
 
 ```php
 // get the first image instance of crop setting 'portrait'
-$image = $page->images->first()->getCrop4('portrait');
+$image = $page->images->first()->getCrop('portrait');
 echo "<img src='{$image->url}' alt='{$image->description}' />";
 ```
 
-If you want to manipulate / resize the cropimage further, you should pass a second argument to the ``getCrop4-method``. This argument is an options array or a PW-Selectorstring. It can contain as many of the known pageimage options like 'quality', 'sharpening', 'cropping', etc, as you need, but none of them is required. But required is at least one setting for 'width' or 'height':
+If you want to manipulate / resize the cropimage further, you should pass a second argument to the ``getCrop-method``. This argument is an options array or a PW-Selectorstring. It can contain as many of the known pageimage options like 'quality', 'sharpening', 'cropping', etc, as you need, but none of them is required. But required is at least one setting for 'width' or 'height':
 
 ```php
-$image = $page->images->first()->getCrop4('portrait', "width=200");
-$image = $page->images->first()->getCrop4('portrait', "width=200, height=200, quality=80");
-$image = $page->images->first()->getCrop4('portrait', "height=400, sharpening=medium, quality=85");
+$image = $page->images->first()->getCrop('portrait', "width=200");
+$image = $page->images->first()->getCrop('portrait', "width=200, height=200, quality=80");
+$image = $page->images->first()->getCrop('portrait', "height=400, sharpening=medium, quality=85");
 ```
 
 If you haven't cropped that image yet (via the cropping tool), a default cropping from the center will be executed
@@ -72,7 +72,7 @@ If you haven't cropped that image yet (via the cropping tool), a default croppin
 
 ### Credits
 
-#### Current Version (PW 3.0.132+) developed by
+#### Current Version 4 (with WebP support for PW 3.0.132+) developed by
 * Horst Nogajski (@horst-n)
 
 ##### Version 3, without WebP support, (PW 3.0.20+ and PW 2.8.20+) developed by
