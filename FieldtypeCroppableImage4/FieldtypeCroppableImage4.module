@@ -42,9 +42,11 @@ class FieldtypeCroppableImage4 extends FieldtypeImage implements ConfigurableMod
 
         // add a new method to pageimage to retrieve a cropped variation as pageimage object
         $this->addHook('Pageimage::getCrop4', $this, 'getCrop4');
+        $this->addHook('Pageimage::getCrop', $this, 'getCrop');
 
         // add a new method to pageimage to retrieve CropSettings for this image
-        $this->addHook('Pageimage::getCrop4Settings', $this, 'getCrop4Settings');
+        $this->addHook('Pageimage::getCropSettings4', $this, 'getCropSettings4');
+        $this->addHook('Pageimage::getCropSettings', $this, 'getCropSettings');
 
         // adjust the getDebugInfo method of pageimage
         //$this->addHookBefore('Pageimage::getDebugInfo', $this, 'getDebugInfo');
@@ -52,8 +54,54 @@ class FieldtypeCroppableImage4 extends FieldtypeImage implements ConfigurableMod
 
         // validates CropSettings
         // and tracks if previously used settings are removed, and if so, raises cleaning routines
-        $this->addHookBefore('InputField::processInput', $this, 'HookValidateSettingsInput');
+        $this->addHookBefore('InputField::processInput4', $this, 'processInput4');
+        $this->addHookBefore('InputField::processInput', $this, 'processInput');
     }
+
+    // PROXY HOOK FUNCTIONS TO USE CAI3 & CAI4 IN PARALLEL MODE
+
+        public function getCrop(HookEvent $event) {
+            return $this->caiTypeDelegation($event, __FUNCTION__);
+        }
+
+        public function getCropSettings(HookEvent $event) {
+            return $this->caiTypeDelegation($event, __FUNCTION__);
+        }
+
+        public function processInput(HookEvent $event) {
+            $caiType = '0';
+            if(isset($event->arguments[0]['type'])) {
+                $caiType = 'FieldtypeCroppableImage3' == $event->arguments[0]['type'] ? '3' : $caiType;
+                $caiType = 'FieldtypeCroppableImage4' == $event->arguments[0]['type'] ? '4' : $caiType;
+            }
+            $methodname = __FUNCTION__ . $caiType;
+            if(method_exists($this, $methodname)) {
+                return $this->$methodname($event);
+            }
+            return false;
+        }
+
+        private function caiTypeDelegation($event, $methodname) {
+            $inputFieldInstance = $event->object->field;
+            if(!$inputFieldInstance) return false;
+
+            $caiType = '0';
+            $caiType = 'InputfieldCroppableImage4' == $inputFieldInstance->inputfieldClass || 'FieldtypeCroppableImage4' == $inputFieldInstance->inputfieldClass ? '4' : $caiType;
+            $caiType = 'InputfieldCroppableImage3' == $inputFieldInstance->inputfieldClass || 'FieldtypeCroppableImage3' == $inputFieldInstance->inputfieldClass ? '3' : $caiType;
+            $methodname = $methodname . $caiType;
+
+            $condition = method_exists($this, $methodname);
+            if($condition) {
+                return $this->$methodname($event);
+            }
+
+            return false;
+        }
+
+    // PROXY HOOK FUNCTIONS TO USE CAI3 & CAI4 IN PARALLEL MODE
+
+
+
 
 
     public function getDebugInfo(HookEvent $event) {
@@ -116,7 +164,7 @@ class FieldtypeCroppableImage4 extends FieldtypeImage implements ConfigurableMod
 
 
     /**
-     * getCrop4Settings
+     * getCropSettings
      *
      * CroppableImage Needs a way to get crop images sizes from the
      * ProcessWire API. The largest usecase for this is when
@@ -126,7 +174,7 @@ class FieldtypeCroppableImage4 extends FieldtypeImage implements ConfigurableMod
      *
      * ...
      *  if ($field->type instanceOf FieldtypeCroppableImage ){
-     *       $cropSettings = $image->getCrop4Settings();
+     *       $cropSettings = $image->getCropSettings();
      *       foreach($cropSettings as $setting){
      *           $cropImage = $image->getCrop4($setting->name);
      *           $ret[$field->name][$i]['crops'][$setting->name]['width'] = $setting->width;
@@ -139,7 +187,7 @@ class FieldtypeCroppableImage4 extends FieldtypeImage implements ConfigurableMod
      * @param HookEvent $event
      * @return bool
      */
-    public function getCrop4Settings(HookEvent $event) {
+    public function getCropSettings4(HookEvent $event) {
         $inputFieldInstance = $event->object->field;
         $cropSettings = new CroppableImage4CropSettings($inputFieldInstance->cropSetting);
         $sets = $cropSettings->getCropSettingsForTemplate($event->object->page->template);
@@ -151,10 +199,10 @@ class FieldtypeCroppableImage4 extends FieldtypeImage implements ConfigurableMod
 
     // this does not only validate settings, it also raises cleaning routines
     // if a user has changed or deleted previously used settings
-    public function HookValidateSettingsInput(HookEvent $event) {
+    public function processInput4(HookEvent $event) {
 
         $args = $event->arguments(0);
-        if(!$args || $args->type !== 'FieldtypeCroppableImage4') return;
+        if(!$args || ($args->type !== 'FieldtypeCroppableImage4' && $args->type !== 'FieldtypeCroppableImage3')) return;
         $input = $event->object;
 
 
@@ -240,6 +288,12 @@ class FieldtypeCroppableImage4 extends FieldtypeImage implements ConfigurableMod
         // return if no Inputfield is found
         $inputFieldInstance = $event->object->field;
         if(!$inputFieldInstance) return;
+
+//$args = [];
+//$args[0] = $this->sanitizer->name($event->arguments(0));
+//if($event->arguments(1)) $args[1] = $event->arguments(1);
+//if($event->arguments(2)) $args[2] = $event->arguments(2);
+//mvd([__FUNCTION__, $inputFieldInstance->inputfieldClass, $args]);
 
         // get mandatory suffixname (cropname)
         $suffix = $this->sanitizer->name($event->arguments(0));
