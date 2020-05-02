@@ -8,8 +8,8 @@ class ProcessCroppableImage4 extends Process implements Module {
             'title'       => 'Croppable Images 4 (Process)',
             'summary'     => 'One or more image uploads (optional predefined crops)',
             'author'      => 'Horst Nogajski',
-            'version'     => '2.0.0',
-            'requires'    => 'ProcessWire>=3.0.132, PHP>=7.0.0, FieldtypeCroppableImage4>=2.0.0',
+            'version'     => '2.0.1',
+            'requires'    => 'ProcessWire>=3.0.132, PHP>=7.0.0, FieldtypeCroppableImage4>=2.0.1',
             'permission'  => self::adminPagePermission,
             'permissions' => array(self::adminPagePermission => 'Crop images with CroppableImage4'),
             'icon'        => 'crop'
@@ -87,7 +87,16 @@ class ProcessCroppableImage4 extends Process implements Module {
         if(0 == $page->id) throw new WireException($this->getText('invalidPageID'));
 
         $editable = $page instanceof RepeaterPage ? $page->getForPage()->editable() : $page->editable();
-        if(!$editable) throw new WirePermissionException('Not Editable');
+        if(!$editable) {
+            if('user' == $page->template->name) {
+                $user = $this->wire('user');
+                $editable = $user->hasPermission(self::adminPagePermission);
+            } else {
+                throw new WirePermissionException('Not Editable');
+            }
+        }
+
+
 
         // UGLY WORKAROUND HERE TO GET A FIELDNAME WITH UPPERCASE LETTERS
         foreach($page->fields as $f) {
@@ -188,7 +197,14 @@ class ProcessCroppableImage4 extends Process implements Module {
         $page = wire('pages')->get($pages_id);
         if(!$page->id) throw new WireException("Invalid page");
         $editable = $page instanceof RepeaterPage ? $page->getForPage()->editable() : $page->editable();
-        if(!$editable) throw new WirePermissionException("Not Editable");
+        if(!$editable) {
+            if('user' == $page->template->name) {
+                $user = $this->wire('user');
+                $editable = $user->hasPermission(self::adminPagePermission);
+            } else {
+                throw new WirePermissionException('Not Editable');
+            }
+        }
 
         // get fieldname from post, sanitize and validate
         $field = wire('sanitizer')->fieldName($this->input->post->field);
