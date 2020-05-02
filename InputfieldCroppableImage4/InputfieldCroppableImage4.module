@@ -133,6 +133,13 @@ class InputfieldCroppableImage4 extends InputfieldImage {
         if(method_exists($process, 'getPage')) {
             $editPage = $process->getPage();
             if($editPage->id) $pages_id = $editPage->id;
+            // We have to call for the modal script here, as it only seems available
+            // in context with granted page edit rights.
+            // But with user pages we have a special case: if the user is allowed to change
+            // some parts of his own profile, like password, email, etc.
+            // he has no regular edit rights to the user page(s). Thus the modal.js is not loaded.
+            // At least, that is how it looked to me.
+            $this->modules->get('JqueryUI')->use('modal');
         }
         $pages_id = $pages_id ? $pages_id : (int)$this->input->get->id;
 
