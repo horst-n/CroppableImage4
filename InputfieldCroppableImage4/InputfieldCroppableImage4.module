@@ -133,6 +133,10 @@ class InputfieldCroppableImage4 extends InputfieldImage {
         if(method_exists($process, 'getPage')) {
             $editPage = $process->getPage();
             if($editPage->id) $pages_id = $editPage->id;
+        }
+        $pages_id = $pages_id ? $pages_id : (int)$this->input->get->id;
+
+        if('user' == $this->wire('pages')->get($pages_id)->template->name) {
             // We have to call for the modal script here, as it only seems available
             // in context with granted page edit rights.
             // But with user pages we have a special case: if the user is allowed to change
@@ -141,7 +145,6 @@ class InputfieldCroppableImage4 extends InputfieldImage {
             // At least, that is how it looked to me.
             $this->modules->get('JqueryUI')->use('modal');
         }
-        $pages_id = $pages_id ? $pages_id : (int)$this->input->get->id;
 
         foreach($cropSettings->items as $cropSetting) {
 
