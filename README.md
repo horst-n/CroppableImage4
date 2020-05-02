@@ -1,8 +1,8 @@
-﻿# Croppable Image 4
+# Croppable Image 4
 
 ## Module for ProcessWire >= 3.0.132
 
-## Version 2.0.0-RC02 (beta)
+## Version 2.0.1-RC03 (beta)
 
 
 ### How to install
