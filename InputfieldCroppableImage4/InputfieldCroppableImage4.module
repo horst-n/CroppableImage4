@@ -8,8 +8,8 @@ class InputfieldCroppableImage4 extends InputfieldImage {
             'title'    => 'Croppable Image 4 (Inputfield)',
             'summary'  => 'One or more image uploads (optional predefined crops)',
             'author'   => 'Horst Nogajski',
-            'version'  => '2.0.0',
-            'requires' => 'ProcessWire>=3.0.132, PHP>=7.0.0, FieldtypeCroppableImage4>=2.0.0',
+            'version'  => '2.0.1',
+            'requires' => 'ProcessWire>=3.0.132, PHP>=7.0.0, FieldtypeCroppableImage4>=2.0.1',
             'icon'     => 'crop'
         );
     }
@@ -126,6 +126,16 @@ class InputfieldCroppableImage4 extends InputfieldImage {
 //        $adminThumb['attr']['data-grid-x'] = ceil(140 / $w * $h);
 //        $adminThumb['attr']['data-grid-y'] = ceil(140 / $h * $w);
 
+        /** @var integer $pages_id, Page ID for crop links, defaulting to 0 */
+        $pages_id = 0;
+        /** @var [ProcessPageEdit|ProcessUser|ProcessProfile] $process, Mixed processes maybee there are more */
+        $process = $this->wire('process');
+        if(method_exists($process, 'getPage')) {
+            $editPage = $process->getPage();
+            if($editPage->id) $pages_id = $editPage->id;
+        }
+        $pages_id = $pages_id ? $pages_id : (int)$this->input->get->id;
+
         foreach($cropSettings->items as $cropSetting) {
 
             if(!$cropSetting->isTemplateAllowed($templateName)) continue;
@@ -147,7 +157,7 @@ class InputfieldCroppableImage4 extends InputfieldImage {
                 'suffix' => $suffix,
                 'width' => $cropSetting->width,
                 'height' => $cropSetting->height,
-                'pages_id' => (int) $this->input->get->id,
+                'pages_id' => $pages_id,
                 'field' => mb_strtolower($this->name),  // TODO: name to lowercase ??? N: Yes! ;-)  ()
                 'modal' => 1
                 ));
