@@ -8,8 +8,8 @@ class InputfieldCroppableImage4 extends InputfieldImage {
             'title'    => 'Croppable Image 4 (Inputfield)',
             'summary'  => 'One or more image uploads (optional predefined crops)',
             'author'   => 'Horst Nogajski',
-            'version'  => '2.0.1',
-            'requires' => 'ProcessWire>=3.0.132, PHP>=7.0.0, FieldtypeCroppableImage4>=2.0.1',
+            'version'  => '2.0.2',
+            'requires' => 'ProcessWire>=3.0.132, PHP>=7.0.0, FieldtypeCroppableImage4>=2.0.2',
             'icon'     => 'crop'
         );
     }
@@ -89,11 +89,10 @@ class InputfieldCroppableImage4 extends InputfieldImage {
         $out = parent::___renderButtons($pagefile, $id, $n);
         $cropLinks = $this->getCropLinks($pagefile);
         if($cropLinks) {
-            $out = $this->hideCoreImageFeatures() .
-                   "<div class='croppableImageButtons'><p>" . $this->getText('predefinedCrops') . "</p>" .
+            $out = "<div class='croppableImageButtons'><p>" . $this->getText('predefinedCrops') . "</p>" .
                    $cropLinks . "</div>" . $out;
         }
-        return $out;
+        return $out . $this->hideCoreImageFeatures();
     }
 
     /**

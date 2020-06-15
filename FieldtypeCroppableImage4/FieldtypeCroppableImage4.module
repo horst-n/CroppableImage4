@@ -8,8 +8,8 @@ class FieldtypeCroppableImage4 extends FieldtypeImage implements ConfigurableMod
             'title'    => 'Croppable Image 4 (Fieldtype & Main-Module)',
             'summary'  => 'One or more image uploads (optional predefined crops)',
             'author'   => 'Horst Nogajski',
-            'version'  => '2.0.1',
-            'requires' => 'ProcessWire>=3.0.132, PHP>=7.0.0, CroppableImage4>=2.0.1',
+            'version'  => '2.0.2',
+            'requires' => 'ProcessWire>=3.0.132, PHP>=7.0.0, CroppableImage4>=2.0.2',
             'installs' => 'InputfieldCroppableImage4, ProcessCroppableImage4',
             'icon'     => 'crop'
         );

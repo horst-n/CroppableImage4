@@ -8,8 +8,8 @@ class ProcessCroppableImage4 extends Process implements Module {
             'title'       => 'Croppable Images 4 (Process)',
             'summary'     => 'One or more image uploads (optional predefined crops)',
             'author'      => 'Horst Nogajski',
-            'version'     => '2.0.1',
-            'requires'    => 'ProcessWire>=3.0.132, PHP>=7.0.0, FieldtypeCroppableImage4>=2.0.1',
+            'version'     => '2.0.2',
+            'requires'    => 'ProcessWire>=3.0.132, PHP>=7.0.0, FieldtypeCroppableImage4>=2.0.2',
             'permission'  => self::adminPagePermission,
             'permissions' => array(self::adminPagePermission => 'Crop images with CroppableImage4'),
             'icon'        => 'crop'
