@@ -8,7 +8,7 @@ class InputfieldCroppableImage4 extends InputfieldImage {
             'title'    => 'Croppable Image 4 (Inputfield)',
             'summary'  => 'One or more image uploads (optional predefined crops)',
             'author'   => 'Horst Nogajski',
-            'version'  => '2.0.2',
+            'version'  => '2.0.3',
             'requires' => 'ProcessWire>=3.0.132, PHP>=7.0.0, FieldtypeCroppableImage4>=2.0.2',
             'icon'     => 'crop'
         );
@@ -56,6 +56,21 @@ class InputfieldCroppableImage4 extends InputfieldImage {
 //        return $out;
 //    }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     protected function hideCoreImageFeatures() {
         $a = explode("\n", trim($this->get('hideCoreFeatures')));
         $All = $Crop = $Focus = $Actions = false;
@@ -71,7 +86,7 @@ class InputfieldCroppableImage4 extends InputfieldImage {
                 $Actions = true;
             }
         }
-        $thisFieldname = '.Inputfield_' . $this->hasField->name;
+        $thisFieldname = $this->getCurrentFieldname();
         $style = "\n<style>\n";
             if($All) $style .= "{$thisFieldname} .InputfieldImageEdit__buttons button, {$thisFieldname} .InputfieldFileActionSelect { display: none !important; }\n";
             if(!$All && $Crop) $style .= "{$thisFieldname} .InputfieldImageEdit__buttons .InputfieldImageButtonCrop  { display: none !important; }\n";
@@ -83,6 +98,33 @@ class InputfieldCroppableImage4 extends InputfieldImage {
         $style .= "</style>\n";
         return $style;
     }
+
+
+    protected function getCurrentFieldname() {
+        $repeaterName = '';
+//$p = $this->wire->pages->get($this->wire->input->id);
+//mvd($p);
+
+        $field = $this->input->get->field;
+//mvd($field);die('RIP');
+
+        if($repeaterName) $repeaterName = '_' . $repeaterName;
+        return '.Inputfield_' . $this->hasField->name . $repeaterName; // . '_repeater1624';
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     protected function ___renderButtons($pagefile, $id, $n) {
