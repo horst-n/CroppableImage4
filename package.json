@@ -1,0 +1,27 @@
+{
+  "name": " CroppableImage4 @ rev-4 ",
+  "version": " 2.1.0",
+  "description": "",
+  "main": "",
+  "scripts": {
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/horst-n/CroppableImage4"
+  },
+  "keywords": [
+    "Processwire",
+    "Processwire Module",
+    "PHP"
+  ],
+  "author": "Horst Nogajski",
+  "license": "PRIVATE",
+  "bugs": {
+    "url": "https://github.com/horst-n/CroppableImage4/issues"
+  },
+  "homepage": "",
+  "dependencies": {
+  },
+  "devDependencies": {
+  }
+}
